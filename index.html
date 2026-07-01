@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSL Checker — collect SSL/TLS information from hosts</title>
+  <meta name="description" content="A simple Python script that collects SSL/TLS certificate information from hosts.">
+  <style>
+    :root {
+      --fg: #1a1a1a;
+      --muted: #666;
+      --border: #e2e2e2;
+      --bg: #ffffff;
+      --code-bg: #f6f6f6;
+      --link: #0b6b3a;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 96px;
+    }
+    header { margin-bottom: 48px; }
+    h1 {
+      font-size: 28px;
+      margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .tagline {
+      color: var(--muted);
+      font-size: 17px;
+      margin: 0 0 20px;
+    }
+    .links a {
+      color: var(--link);
+      text-decoration: none;
+      font-size: 15px;
+      margin-right: 18px;
+    }
+    .links a:hover { text-decoration: underline; }
+    h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    p { margin: 0 0 16px; }
+    a { color: var(--link); }
+    ul { margin: 0 0 16px; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 0 0 16px;
+    }
+    pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; }
+    .cmd { color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    td code { white-space: nowrap; }
+    footer {
+      margin-top: 64px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>SSL Checker</h1>
+      <p class="tagline">A simple Python script that collects SSL/TLS information from hosts.</p>
+      <p class="links">
+        <a href="https://github.com/narbehaj/ssl-checker">GitHub</a>
+        <a href="https://pypi.org/project/python-ssl-checker/">PyPI</a>
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Overview</h2>
+        <p>
+          SSL Checker connects to one or more hosts and reports on their SSL/TLS
+          certificates: issuer, validity dates, days until expiry, TLS version,
+          hostname matching and more. It supports certificate chain validation,
+          weak-configuration detection, STARTTLS, parallel scanning, monitoring
+          exit codes, and export to JSON, CSV, or HTML.
+        </p>
+      </section>
+
+      <section>
+        <h2>Install</h2>
+        <pre><code>pip install python-ssl-checker</code></pre>
+        <p>Or run it directly from a clone of the repository:</p>
+        <pre><code>git clone https://github.com/narbehaj/ssl-checker.git
+cd ssl-checker
+pip install -r requirements.txt</code></pre>
+      </section>
+
+      <section>
+        <h2>Usage</h2>
+        <pre><code><span class="cmd"># Check one or more hosts</span>
+./ssl_checker.py -H example.com github.com:443
+
+<span class="cmd"># Run a security analysis</span>
+./ssl_checker.py -H narbeh.org:443 -a
+
+<span class="cmd"># Probe which TLS versions are accepted</span>
+./ssl_checker.py -H github.com -p
+
+<span class="cmd"># Inspect a mail server over STARTTLS</span>
+./ssl_checker.py -H smtp.gmail.com:587 -T smtp
+
+<span class="cmd"># Scan a file of hosts in parallel, monitoring mode</span>
+./ssl_checker.py -f hosts.txt -n 20 -w 30 -q -e
+
+<span class="cmd"># JSON output</span>
+./ssl_checker.py -j -H narbeh.org:443</code></pre>
+      </section>
+
+      <section>
+        <h2>Example output</h2>
+        <pre><code>[✓] github.com
+    Issued domain:  github.com
+    Issued by:      DigiCert Inc (US)
+    Valid to:       2022-05-10 (659 days left)
+    TLS Version:    TLS 1.2
+    Certificate valid: True</code></pre>
+      </section>
+
+      <section>
+        <h2>Options</h2>
+        <table>
+          <thead>
+            <tr><th>Flag</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>-H, --host</code></td><td>Hosts to check, separated by space</td></tr>
+            <tr><td><code>-f, --host-file</code></td><td>Read hosts from a file (use <code>-</code> for stdin)</td></tr>
+            <tr><td><code>-s, --socks</code></td><td>Connect through a SOCKS proxy (<code>host:port</code>)</td></tr>
+            <tr><td><code>-c, --csv</code></td><td>Export results to a CSV file</td></tr>
+            <tr><td><code>-j, --json</code></td><td>Print results as JSON</td></tr>
+            <tr><td><code>-S, --summary</code></td><td>Show summary output only</td></tr>
+            <tr><td><code>-x, --html</code></td><td>Export results to an HTML file</td></tr>
+            <tr><td><code>-J, --json-save</code></td><td>Save JSON to a file per host</td></tr>
+            <tr><td><code>-t, --timeout</code></td><td>Connection timeout in seconds (default: 5)</td></tr>
+            <tr><td><code>-r, --retries</code></td><td>Retries on a dropped connection (default: 2)</td></tr>
+            <tr><td><code>-a, --analyze</code></td><td>Run SSL security analysis</td></tr>
+            <tr><td><code>-p, --protocols</code></td><td>Probe acceptance of TLS 1.0–1.3</td></tr>
+            <tr><td><code>-T, --starttls</code></td><td>Use STARTTLS (smtp, imap, pop3, ftp, xmpp)</td></tr>
+            <tr><td><code>--ca-file</code></td><td>Custom CA bundle for verification</td></tr>
+            <tr><td><code>-n, --concurrency</code></td><td>Number of parallel host checks (default: 1)</td></tr>
+            <tr><td><code>-w, --warning-days</code></td><td>Expiry warning threshold in days (default: 15)</td></tr>
+            <tr><td><code>-q, --quiet</code></td><td>Only print problematic hosts</td></tr>
+            <tr><td><code>-e, --exit-code</code></td><td>Nagios-style exit codes</td></tr>
+            <tr><td><code>-v, --verbose</code></td><td>Verbose troubleshooting output</td></tr>
+            <tr><td><code>-h, --help</code></td><td>Show the help message</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer>
+      Licensed under GPL-3.0 ·
+      <a href="https://github.com/narbehaj/ssl-checker">Source on GitHub</a>
+    </footer>
+  </div>
+</body>
+</html>
