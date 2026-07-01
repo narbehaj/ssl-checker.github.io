@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SSL Checker — collect SSL/TLS information from hosts</title>
-  <meta name="description" content="A simple Python script that collects SSL/TLS certificate information from hosts.">
+  <title>Python SSL/TLS Checker — collect SSL/TLS information from hosts</title>
+  <meta name="description" content="A Python script that collects SSL/TLS information from hosts as human-readable text, JSON, CSV, or HTML.">
   <style>
     :root {
       --fg: #1a1a1a;
@@ -23,11 +23,11 @@
       font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     .wrap {
-      max-width: 720px;
+      max-width: 760px;
       margin: 0 auto;
       padding: 64px 24px 96px;
     }
-    header { margin-bottom: 48px; }
+    header { margin-bottom: 40px; }
     h1 {
       font-size: 28px;
       margin: 0 0 8px;
@@ -45,19 +45,40 @@
       margin-right: 18px;
     }
     .links a:hover { text-decoration: underline; }
+    nav.toc {
+      margin: 32px 0 8px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14.5px;
+    }
+    nav.toc a {
+      color: var(--link);
+      text-decoration: none;
+      margin-right: 16px;
+      white-space: nowrap;
+      display: inline-block;
+      line-height: 1.9;
+    }
+    nav.toc a:hover { text-decoration: underline; }
     h2 {
       font-size: 15px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--muted);
-      margin: 48px 0 16px;
+      margin: 52px 0 16px;
       padding-bottom: 8px;
       border-bottom: 1px solid var(--border);
+      scroll-margin-top: 20px;
+    }
+    h3 {
+      font-size: 15px;
+      margin: 24px 0 10px;
     }
     p { margin: 0 0 16px; }
     a { color: var(--link); }
     ul { margin: 0 0 16px; padding-left: 20px; }
-    li { margin-bottom: 6px; }
+    li { margin-bottom: 8px; }
     code {
       background: var(--code-bg);
       padding: 2px 6px;
@@ -73,23 +94,22 @@
       overflow-x: auto;
       margin: 0 0 16px;
     }
-    pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; }
-    .cmd { color: var(--muted); }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14.5px;
+    pre code { background: none; padding: 0; font-size: 13px; line-height: 1.55; }
+    dl { margin: 0 0 16px; }
+    dt {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      margin: 14px 0 4px;
     }
-    th, td {
-      text-align: left;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
+    dd { margin: 0 0 0 20px; color: #333; font-size: 15px; }
+    .note {
+      border-left: 3px solid var(--border);
+      padding: 4px 0 4px 14px;
+      color: var(--muted);
+      margin: 0 0 16px;
     }
-    th { color: var(--muted); font-weight: 600; }
-    td code { white-space: nowrap; }
     footer {
-      margin-top: 64px;
+      margin-top: 72px;
       padding-top: 20px;
       border-top: 1px solid var(--border);
       color: var(--muted);
@@ -100,95 +120,416 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>SSL Checker</h1>
-      <p class="tagline">A simple Python script that collects SSL/TLS information from hosts.</p>
+      <h1>Python SSL/TLS Checker</h1>
+      <p class="tagline">Python script that collects SSL/TLS information from hosts.</p>
       <p class="links">
         <a href="https://github.com/narbehaj/ssl-checker">GitHub</a>
         <a href="https://pypi.org/project/python-ssl-checker/">PyPI</a>
+        <a href="https://hub.docker.com/r/narbehaj/ssl-checker">Docker Hub</a>
       </p>
+      <nav class="toc">
+        <a href="#about">About</a>
+        <a href="#requirements">Requirements</a>
+        <a href="#usage">Usage</a>
+        <a href="#options">Options</a>
+        <a href="#example">Example</a>
+        <a href="#socks">SOCKS</a>
+        <a href="#summary">Summary</a>
+        <a href="#analyze">Analyze</a>
+        <a href="#validation">Validation</a>
+        <a href="#protocols">Protocols</a>
+        <a href="#starttls">STARTTLS</a>
+        <a href="#monitoring">Monitoring</a>
+        <a href="#output">Output formats</a>
+        <a href="#module">Python module</a>
+        <a href="#docker">Docker</a>
+      </nav>
     </header>
 
     <main>
       <section>
-        <h2>Overview</h2>
+        <h2 id="about">About</h2>
         <p>
-          SSL Checker connects to one or more hosts and reports on their SSL/TLS
-          certificates: issuer, validity dates, days until expiry, TLS version,
-          hostname matching and more. It supports certificate chain validation,
-          weak-configuration detection, STARTTLS, parallel scanning, monitoring
-          exit codes, and export to JSON, CSV, or HTML.
+          It's a swiss-army script running in Python that collects SSL/TLS information
+          from endpoints and returns the group of information as human-readable text,
+          JSON, CSV, or HTML. It can also connect through your specified SOCKS server.
         </p>
+        <p>Highlights:</p>
+        <ul>
+          <li><strong>Real validation</strong> — verifies the certificate chain against the system trust store and checks that the hostname actually matches the certificate (with wildcard support), so you can tell <em>expired</em>, <em>untrusted</em>, <em>self-signed</em>, and <em>wrong-host</em> apart.</li>
+          <li><strong>Correct protocol/cipher reporting</strong> — reports the <em>actually negotiated</em> TLS version and cipher suite (TLS 1.3 aware).</li>
+          <li><strong>Protocol enumeration</strong> (<code>-p</code>) — probes which of TLS 1.0–1.3 an endpoint accepts and flags the insecure ones still enabled.</li>
+          <li><strong>Weak-config detection</strong> — flags weak public keys (RSA/DSA &lt; 2048-bit) and weak signature hashes (SHA-1/MD5).</li>
+          <li><strong>STARTTLS</strong> (<code>-T</code>) — inspect certificates on SMTP, IMAP, POP3, FTP, and XMPP endpoints, not just HTTPS.</li>
+          <li><strong>Parallel scanning</strong> (<code>-n</code>) — check many hosts concurrently.</li>
+          <li><strong>Monitoring mode</strong> (<code>-e</code>, <code>-q</code>) — Nagios-style exit codes (<code>1</code> = warning, <code>2</code> = critical) and a quiet mode that only prints hosts with a problem.</li>
+          <li><strong>SSL Labs analysis</strong> (<code>-a</code>) — optional deep scan for known vulnerabilities and a letter grade.</li>
+          <li><strong>Resilient by default</strong> — IPv4/IPv6, automatic retries on dropped connections, host lists from a file or stdin (blank lines and <code>#</code> comments ignored), and an optional custom CA bundle (<code>--ca-file</code>).</li>
+        </ul>
       </section>
 
       <section>
-        <h2>Install</h2>
+        <h2 id="requirements">Requirements</h2>
+        <pre><code>pip install -r requirements.txt</code></pre>
+        <p>Or by pip installation:</p>
         <pre><code>pip install python-ssl-checker</code></pre>
-        <p>Or run it directly from a clone of the repository:</p>
-        <pre><code>git clone https://github.com/narbehaj/ssl-checker.git
-cd ssl-checker
-pip install -r requirements.txt</code></pre>
       </section>
 
       <section>
-        <h2>Usage</h2>
-        <pre><code><span class="cmd"># Check one or more hosts</span>
-./ssl_checker.py -H example.com github.com:443
+        <h2 id="usage">Usage</h2>
+        <pre><code>./ssl_checker.py -h
+usage: ssl_checker.py (-H [HOSTS ...] | -f HOST_FILE) [-s HOST:PORT]
+                      [-c FILENAME.CSV] [-j] [-S] [-x] [-J] [-t TIMEOUT]
+                      [-r N] [-a] [-p] [-T PROTO] [--ca-file FILE] [-n N]
+                      [-w DAYS] [-q] [-e] [-v] [-h]
 
-<span class="cmd"># Run a security analysis</span>
-./ssl_checker.py -H narbeh.org:443 -a
+Collects useful information about the given host's SSL certificates.
 
-<span class="cmd"># Probe which TLS versions are accepted</span>
-./ssl_checker.py -H github.com -p
-
-<span class="cmd"># Inspect a mail server over STARTTLS</span>
-./ssl_checker.py -H smtp.gmail.com:587 -T smtp
-
-<span class="cmd"># Scan a file of hosts in parallel, monitoring mode</span>
-./ssl_checker.py -f hosts.txt -n 20 -w 30 -q -e
-
-<span class="cmd"># JSON output</span>
-./ssl_checker.py -j -H narbeh.org:443</code></pre>
+options:
+  -H, --host [HOSTS ...]
+                        Hosts as input separated by space
+  -f, --host-file HOST_FILE
+                        Hosts from a file ('-' reads stdin)
+  -s, --socks HOST:PORT
+                        Enable SOCKS proxy for connection
+  -c, --csv FILENAME.CSV
+                        Enable CSV file export
+  -j, --json            Enable JSON in the output
+  -S, --summary         Enable summary output only
+  -x, --html            Enable HTML file export
+  -J, --json-save       Enable JSON export individually per host
+  -t, --timeout TIMEOUT
+                        Timeout for the connection in seconds (default: 5)
+  -r, --retries N       Retries on a dropped connection (default: 2)
+  -a, --analyze         Enable SSL security analysis on the host
+  -p, --protocols       Probe which TLS versions (1.0-1.3) the host accepts
+  -T, --starttls PROTO  Use STARTTLS first (smtp/imap/pop3/ftp/xmpp)
+  --ca-file FILE        Verify against this CA bundle instead of the system
+                        store
+  -n, --concurrency N   Number of hosts to check in parallel (default: 1)
+  -w, --warning-days DAYS
+                        Days-to-expiry threshold for a warning (default: 15)
+  -q, --quiet           Only print hosts that have a problem
+  -e, --exit-code       Exit non-zero for monitoring (1=warning, 2=critical)
+  -v, --verbose         Enable verbose to see what is going on
+  -h, --help            Show this help message and exit</code></pre>
+        <p>The port is optional here. The script will use 443 if not specified.</p>
       </section>
 
       <section>
-        <h2>Example output</h2>
-        <pre><code>[✓] github.com
-    Issued domain:  github.com
-    Issued by:      DigiCert Inc (US)
-    Valid to:       2022-05-10 (659 days left)
-    TLS Version:    TLS 1.2
-    Certificate valid: True</code></pre>
+        <h2 id="options">Options</h2>
+        <dl>
+          <dt>-f, --host-file</dt>
+          <dd>File containing hostnames for input. Use <code>-</code> to read the list from stdin. Blank lines and lines starting with <code>#</code> are ignored, so you can keep a commented host list.</dd>
+
+          <dt>-H, --host</dt>
+          <dd>Enter the hosts separated by space.</dd>
+
+          <dt>-s, --socks</dt>
+          <dd>Enable connection through the SOCKS server.</dd>
+
+          <dt>-c, --csv</dt>
+          <dd>Enable CSV file export by specifying <code>filename.csv</code> after this argument.</dd>
+
+          <dt>-j, --json</dt>
+          <dd>Use this if you want only to have the result in JSON.</dd>
+
+          <dt>-S, --summary</dt>
+          <dd>This argument will show a quick summary of the output.</dd>
+
+          <dt>-x, --html</dt>
+          <dd>Enable HTML file export.</dd>
+
+          <dt>-J, --json-save</dt>
+          <dd>Use this if you want to save as a JSON file per host.</dd>
+
+          <dt>-t, --timeout TIMEOUT</dt>
+          <dd>Timeout for the connection in seconds (default: 5).</dd>
+
+          <dt>-r, --retries N</dt>
+          <dd>How many times to retry a dropped connection (reset/refused) before giving up (default: 2). Timeouts are not retried, so an unreachable host won't stall for several timeouts in a row.</dd>
+
+          <dt>-a, --analyze</dt>
+          <dd>This argument will include security analysis on the certificate. Takes more time. No result means failure to analyze.</dd>
+
+          <dt>--ca-file FILE</dt>
+          <dd>Verify the certificate chain against the CA bundle in <code>FILE</code> instead of the operating system trust store. Handy for internal/private CAs.</dd>
+
+          <dt>-q, --quiet</dt>
+          <dd>Only print hosts that have a problem (expired, untrusted, wrong hostname, failed, or expiring within <code>--warning-days</code>). The summary line is still shown. Great for noisy host lists.</dd>
+
+          <dt>-p, --protocols</dt>
+          <dd>Probe each of TLS 1.0–1.3 individually and report which versions the endpoint accepts. Versions that are still enabled but considered insecure (TLS 1.0/1.1) are highlighted as weak.</dd>
+
+          <dt>-T, --starttls PROTO</dt>
+          <dd>Upgrade a plaintext connection with STARTTLS before inspecting the certificate. Supports <code>smtp</code>, <code>imap</code>, <code>pop3</code>, <code>ftp</code>, and <code>xmpp</code>. Remember to point the port at the right service, e.g. <code>-H mail.example.com:587 -T smtp</code>.</dd>
+
+          <dt>-n, --concurrency N</dt>
+          <dd>Check up to N hosts in parallel. Great for scanning a large <code>--host-file</code>. (Forced to 1 when <code>-s/--socks</code> is used, since the proxy uses global state.)</dd>
+
+          <dt>-w, --warning-days DAYS</dt>
+          <dd>Number of days before expiry that counts as a warning (default: 15). Affects the summary and the <code>-e</code> exit code.</dd>
+
+          <dt>-e, --exit-code</dt>
+          <dd>Return a monitoring-friendly exit code: <code>0</code> = all good, <code>1</code> = at least one certificate is expiring within <code>--warning-days</code>, <code>2</code> = at least one host failed, expired, or is untrusted. Ideal for cron jobs and CI pipelines.</dd>
+
+          <dt>-v, --verbose</dt>
+          <dd>Shows more output. Good for troubleshooting.</dd>
+
+          <dt>-h, --help</dt>
+          <dd>Shows the help and exit.</dd>
+        </dl>
       </section>
 
       <section>
-        <h2>Options</h2>
-        <table>
-          <thead>
-            <tr><th>Flag</th><th>Description</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><code>-H, --host</code></td><td>Hosts to check, separated by space</td></tr>
-            <tr><td><code>-f, --host-file</code></td><td>Read hosts from a file (use <code>-</code> for stdin)</td></tr>
-            <tr><td><code>-s, --socks</code></td><td>Connect through a SOCKS proxy (<code>host:port</code>)</td></tr>
-            <tr><td><code>-c, --csv</code></td><td>Export results to a CSV file</td></tr>
-            <tr><td><code>-j, --json</code></td><td>Print results as JSON</td></tr>
-            <tr><td><code>-S, --summary</code></td><td>Show summary output only</td></tr>
-            <tr><td><code>-x, --html</code></td><td>Export results to an HTML file</td></tr>
-            <tr><td><code>-J, --json-save</code></td><td>Save JSON to a file per host</td></tr>
-            <tr><td><code>-t, --timeout</code></td><td>Connection timeout in seconds (default: 5)</td></tr>
-            <tr><td><code>-r, --retries</code></td><td>Retries on a dropped connection (default: 2)</td></tr>
-            <tr><td><code>-a, --analyze</code></td><td>Run SSL security analysis</td></tr>
-            <tr><td><code>-p, --protocols</code></td><td>Probe acceptance of TLS 1.0–1.3</td></tr>
-            <tr><td><code>-T, --starttls</code></td><td>Use STARTTLS (smtp, imap, pop3, ftp, xmpp)</td></tr>
-            <tr><td><code>--ca-file</code></td><td>Custom CA bundle for verification</td></tr>
-            <tr><td><code>-n, --concurrency</code></td><td>Number of parallel host checks (default: 1)</td></tr>
-            <tr><td><code>-w, --warning-days</code></td><td>Expiry warning threshold in days (default: 15)</td></tr>
-            <tr><td><code>-q, --quiet</code></td><td>Only print problematic hosts</td></tr>
-            <tr><td><code>-e, --exit-code</code></td><td>Nagios-style exit codes</td></tr>
-            <tr><td><code>-v, --verbose</code></td><td>Verbose troubleshooting output</td></tr>
-            <tr><td><code>-h, --help</code></td><td>Show the help message</td></tr>
-          </tbody>
-        </table>
+        <h2 id="example">Example</h2>
+        <pre><code>narbeh@narbeh-laptop:~/ssl-checker$ ./ssl_checker.py -H time.com github.com:443
++---------------------+
+| Analyzing 2 host(s) |
++---------------------+
+	[✓] time.com
+	-------------
+		Issued domain: time.com
+		Issued to: None
+		Issued by: Amazon (US)
+		Valid from: 2019-09-06
+		Valid to: 2020-10-06 (78 days left)
+		Validity days: 396
+		TLS Version: TLS 1.2
+		Certificate valid: True
+		Certificate S/N: 20641318859548253362475798736742284477
+		Certificate SHA1 FP: D5:CE:1B:77:AB:59:C9:BE:37:58:0F:5D:73:97:64:98:C4:3E:43:30
+		Certificate version: 2
+		Certificate algorithm: sha256WithRSAEncryption
+		Expired: False
+		Certificate SANs:
+		 \_ DNS:time.com
+		 \_ DNS:*.time.com
+
+
+	[✓] github.com
+	---------------
+		Issued domain: github.com
+		Issued to: GitHub, Inc.
+		Issued by: DigiCert Inc (US)
+		Valid from: 2020-05-05
+		Valid to: 2022-05-10 (659 days left)
+		Validity days: 735
+		TLS Version: TLS 1.2
+		Certificate valid: True
+		Certificate S/N: 7101927171473588541993819712332065657
+		Certificate SHA1 FP: 5F:3F:7A:C2:56:9F:50:A4:66:76:47:C6:A1:8C:A0:07:AA:ED:BB:8E
+		Certificate version: 2
+		Certificate algorithm: sha256WithRSAEncryption
+		Expired: False
+		Certificate SANs:
+		 \_ DNS:github.com
+		 \_ DNS:www.github.com
+
+
++-------------------------------------------------------------------------------------------+
+| Successful: 2 | Failed: 0 | Valid: 2 | Warning: 0 | Expired: 0 | Duration: 0:00:07.694433 |
++-------------------------------------------------------------------------------------------+</code></pre>
+        <p class="note">NOTE: Keep in mind that if the certificate has less than 15 days of validity, the script will consider it as a warning in the summary.</p>
+      </section>
+
+      <section>
+        <h2 id="socks">Censored?</h2>
+        <p>No problem. Pass <code>-s/--socks</code> argument to the script with <code>HOST:PORT</code> format to connect through the SOCKS proxy.</p>
+        <pre><code>narbeh@narbeh-xps:~/ssl-checker$ ./ssl_checker.py -H facebook.com
++-------------------+
+|Analyzing 1 host(s)|
++-------------------+
+
+	[✗] facebook.com         Failed: [Errno 111] Connection refused
+
++-------------------------------------------------------------------------------------------+
+| Successful: 0 | Failed: 1 | Valid: 0 | Warning: 0 | Expired: 0 | Duration: 0:00:04.109058 |
++-------------------------------------------------------------------------------------------+
+
+narbeh@narbeh-xps:~/ssl-checker$ ./ssl_checker.py -H facebook.com -s localhost:9050
++---------------------+
+| Analyzing 1 host(s) |
++---------------------+
+	[✓] facebook.com
+	-----------------
+		Issued domain: *.facebook.com
+		Issued to: Facebook, Inc.
+		Issued by: DigiCert Inc (US)
+		Valid from: 2020-05-14
+		Valid to: 2020-08-05 (16 days left)
+		Validity days: 83
+		TLS Version: TLS 1.2
+		Certificate valid: True
+		Certificate S/N: 19351530099991824979726880175805235719
+		Certificate SHA1 FP: 89:7F:54:63:61:34:2F:7E:B4:B5:68:E2:92:79:D2:98:B4:97:D8:EA
+		Certificate version: 2
+		Certificate algorithm: sha256WithRSAEncryption
+		Expired: False
+		Certificate SANs:
+		 \_ DNS:*.facebook.com
+		 \_ DNS:*.facebook.net
+		 \_ DNS:*.fbcdn.net
+		 \_ DNS:*.fbsbx.com
+		 \_ DNS:*.messenger.com
+		 \_ DNS:facebook.com
+		 \_ DNS:messenger.com
+		 \_ DNS:*.m.facebook.com
+		 \_ DNS:*.xx.fbcdn.net
+		 \_ DNS:*.xy.fbcdn.net
+		 \_ DNS:*.xz.fbcdn.net
+
+
++-------------------------------------------------------------------------------------------+
+| Successful: 1 | Failed: 0 | Valid: 1 | Warning: 0 | Expired: 0 | Duration: 0:00:00.416188 |
++-------------------------------------------------------------------------------------------+</code></pre>
+      </section>
+
+      <section>
+        <h2 id="summary">Quick Summary</h2>
+        <p>Sometimes you need to run the script and get a quick summary of the hosts. You will get a quick overview of the result by passing <code>-S/--summary</code>.</p>
+        <pre><code>narbeh@narbeh-xps:~/ssl-checker$ ./ssl_checker.py -H narbeh.org:443 test.com twitter.com -S
++-------------------------------------------------------------------------------------------+
+| Successful: 3 | Failed: 0 | Valid: 3 | Warning: 0 | Expired: 0 | Duration: 0:00:01.958670 |
++-------------------------------------------------------------------------------------------+</code></pre>
+      </section>
+
+      <section>
+        <h2 id="analyze">Security Analyze</h2>
+        <p>By passing <code>-a/--analyze</code> to the script, it will scan the certificate for security issues and vulnerabilities. It will also mark a grade for the certificate. <strong>This will take more time to finish.</strong></p>
+        <pre><code>narbeh@narbeh-xps:~/ssl-checker$ ./ssl_checker.py -H narbeh.org:443 -a
++---------------------+
+| Analyzing 1 host(s) |
++---------------------+
+
+Warning: -a/--analyze is enabled. It takes more time...
+
+	[✓] narbeh.org
+
+		Issued domain: narbeh.org
+		Issued to: None
+		Issued by: Let's Encrypt (US)
+		Valid from: 2018-04-21
+		Valid to: 2018-07-20 (88 days left)
+		Validity days: 90
+		TLS Version: TLS 1.2
+		Certificate S/N: 338163108483756707389368573553026254634358
+		Certificate version: 2
+		Certificate algorithm: sha256WithRSAEncryption
+		Certificate grade: A
+		Poodle vulnerability: False
+		Heartbleed vulnerability: False
+		Heartbeat vulnerability: True
+		Freak vulnerability: False
+		Logjam vulnerability: False
+		Drown vulnerability: False
+		Expired: False
+
++------------------------------------------------------+
+| Successful: 1 | Failed: 0 | Duration: 0:00:01.429145 |
++------------------------------------------------------+</code></pre>
+      </section>
+
+      <section>
+        <h2 id="validation">Certificate Validation</h2>
+        <p>Unlike a plain "is it expired?" check, the script tells you <em>why</em> a certificate is good or bad. Every host reports whether the chain is <strong>trusted</strong> by your system trust store and whether the <strong>hostname matches</strong> the certificate (wildcards included):</p>
+        <pre><code>$ ./ssl_checker.py -H wrong.host.badssl.com self-signed.badssl.com
+	[✗] wrong.host.badssl.com
+		Certificate trusted: True
+		Hostname matches: False
+		Validation note: Hostname mismatch, certificate is not valid for 'wrong.host.badssl.com'.
+		Certificate valid: False
+
+	[✗] self-signed.badssl.com
+		Certificate trusted: False
+		Hostname matches: True
+		Self-signed certificate
+		Validation note: self-signed certificate
+		Certificate valid: False</code></pre>
+        <p><code>Certificate valid</code> is <code>True</code> only when the cert is not expired <strong>and</strong> the chain is trusted <strong>and</strong> the hostname matches. The output also reports the public-key type/size and signature hash, flagging weak keys (RSA/DSA &lt; 2048-bit) and weak hashes (SHA-1/MD5).</p>
+      </section>
+
+      <section>
+        <h2 id="protocols">Protocol Enumeration</h2>
+        <p>Pass <code>-p/--protocols</code> to find out exactly which TLS versions an endpoint will accept and to catch legacy protocols that should be disabled:</p>
+        <pre><code>$ ./ssl_checker.py -H github.com -p
+		TLS Version: TLSv1.3
+		Cipher: TLS_AES_128_GCM_SHA256
+		...
+		Supported protocols: TLS 1.2, TLS 1.3</code></pre>
+        <p>If a host still accepts TLS 1.0 or 1.1, they are listed under <code>Weak protocols enabled</code>.</p>
+      </section>
+
+      <section>
+        <h2 id="starttls">STARTTLS (Mail / FTP / XMPP)</h2>
+        <p>HTTPS isn't the only thing using certificates. Use <code>-T/--starttls</code> to inspect the certificate on a mail or FTP server that upgrades a plaintext connection:</p>
+        <pre><code>$ ./ssl_checker.py -H smtp.gmail.com:587 -T smtp
+	[✓] smtp.gmail.com
+		Issued by: Google Trust Services (US)
+		TLS Version: TLSv1.3
+		Certificate trusted: True
+		Hostname matches: True</code></pre>
+        <p>Supported protocols: <code>smtp</code>, <code>imap</code>, <code>pop3</code>, <code>ftp</code>, <code>xmpp</code>.</p>
+      </section>
+
+      <section>
+        <h2 id="monitoring">Monitoring (Exit Codes) and Concurrency</h2>
+        <p>For scheduled checks, combine a host file (or <code>-</code> for stdin), parallel scanning, quiet output, and a monitoring exit code:</p>
+        <pre><code>$ ./ssl_checker.py -f hosts.txt -n 20 -w 30 -q -e
++-------------------------------------------------------------------------------------------------------------+
+| Successful: 50 | Failed: 0 | Valid: 50 | Warning: 2 | Expired: 0 | Untrusted: 0 | Duration: 0:00:03.114520 |
++-------------------------------------------------------------------------------------------------------------+
+$ echo $?
+1</code></pre>
+        <p>Exit codes: <code>0</code> healthy, <code>1</code> something expires within <code>--warning-days</code>, <code>2</code> something failed/expired/untrusted. Drop it straight into cron:</p>
+        <pre><code>0 7 * * * /path/to/ssl_checker.py -f /etc/ssl-hosts.txt -w 21 -e -S || mail -s "SSL warning" you@example.com</code></pre>
+      </section>
+
+      <section>
+        <h2 id="output">JSON, HTML, and CSV Output</h2>
+        <p>Example only with the <code>-j/--json</code> argument which shows the JSON only. Perfect for piping to another tool.</p>
+        <pre><code>narbeh@narbeh-xps:~/ssl-checker$ ./ssl_checker.py -j -H narbeh.org:443
+{"narbeh.org": {"host": "narbeh.org", "issued_to": "sni.cloudflaressl.com", "issued_o": "Cloudflare, Inc.", "issuer_c": "US", "issuer_o": "CloudFlare, Inc.", "issuer_ou": null, "issuer_cn": "CloudFlare Inc ECC CA-2", "cert_sn": "20958932659753030511717961095784314907", "cert_sha1": "FC:2D:0E:FD:DE:C0:98:7D:23:D2:E7:14:4C:07:6A:3D:25:25:49:B6", "cert_alg": "ecdsa-with-SHA256", "cert_ver": 2, "cert_sans": "DNS:sni.cloudflaressl.com; DNS:narbeh.org; DNS:*.narbeh.org", "cert_exp": false, "cert_valid": true, "valid_from": "2020-04-02", "valid_till": "2020-10-09", "validity_days": 190, "days_left": 81, "valid_days_to_expire": 81, "tcp_port": 443}}</code></pre>
+        <p>CSV export is also easy. After running the script with <code>-c/--csv</code> argument and specifying <code>filename.csv</code> after it, you'll have something like this:</p>
+        <pre><code>narbeh@narbeh-xps:~/ssl-checker$ cat domain.csv
+narbeh.org
+issued_to,narbeh.org
+valid_till,2018-07-20
+valid_from,2018-04-21
+issuer_ou,None
+cert_ver,2
+cert_alg,sha256WithRSAEncryption
+cert_exp,False
+issuer_c,US
+issuer_cn,Let's Encrypt Authority X3
+issuer_o,Let's Encrypt
+validity_days,90
+cert_sn,338163108483756707389368573553026254634358</code></pre>
+        <p>Finally, if you want to export JSON's output per host in a separate file, use <code>-J/--json-save</code>. This will export JSON's output per host.</p>
+      </section>
+
+      <section>
+        <h2 id="module">As a Python Module</h2>
+        <p>Install with pip or import the <code>ssl_checker.py</code> into your Python script and use it as a module.</p>
+        <pre><code>pip install python-ssl-checker</code></pre>
+        <pre><code>from ssl_checker import SSLChecker
+
+SSLChecker = SSLChecker()
+args = {
+    'hosts': ['google.com', 'cisco.com']
+}
+
+SSLChecker.show_result(SSLChecker.get_args(json_args=args))</code></pre>
+      </section>
+
+      <section>
+        <h2 id="docker">Docker</h2>
+        <h3>From the Docker Hub</h3>
+        <pre><code>$ docker run -it --rm narbehaj/ssl-checker -H twitter.com</code></pre>
+        <h3>Build your own Dockerfile</h3>
+        <p>If you want to run this script via docker, create your image and run it once:</p>
+        <pre><code>$ docker build -t ssl-checker .
+$ docker run -it --rm ssl-checker -H twitter.com</code></pre>
       </section>
     </main>
 
